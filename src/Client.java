@@ -1,11 +1,7 @@
-import org.w3c.dom.ls.LSOutput;
-
 import java.io.IOException;
 import java.net.*;
 import java.util.Objects;
 import java.util.Scanner;
-
-import static java.lang.Math.min;
 
 public class Client {
     private final DatagramSocket socket;
