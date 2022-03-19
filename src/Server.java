@@ -38,6 +38,7 @@ public class Server {
                 }
                 else {
                     queueOfPackets.addPacket(packet);
+                    queueOfPackets.printAllPackets();
                     if(numberOfPacket == 0) {
                         System.out.println("Connection accepted, host: " + packet.getAddress());
                     }

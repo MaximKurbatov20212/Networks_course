@@ -5,7 +5,7 @@ public class QueueOfPackets {
     DatagramPacket[] packets;
     private int MAX_BUF = 10;
     private int numberOfPackets;
-
+    private int start = 0;
 
     public QueueOfPackets() {
         numberOfPackets = 0;
@@ -14,33 +14,25 @@ public class QueueOfPackets {
 
     // Returns
     public void addPacket(DatagramPacket packet) {
-        if(numberOfPackets == MAX_BUF) {
-            numberOfPackets--;
-            for(int i = 0; i < MAX_BUF - 1; i++) {
-                packets[i] = packets[i + 1];
-            }
-        }
-
         DatagramPacket copy = new DatagramPacket(packet.getData().clone(), packet.getLength(), packet.getAddress(), packet.getPort());
-        packets[numberOfPackets] = copy;
-        numberOfPackets++;
+        packets[((start + numberOfPackets) % MAX_BUF)] = copy;
+        start = numberOfPackets == MAX_BUF ? start + 1 : start;
+        if(numberOfPackets != MAX_BUF) {
+            numberOfPackets++;
+        }
     }
 
     public DatagramPacket getPacket() {
         if(numberOfPackets == 0) {
             return null;
         }
-        DatagramPacket packet = packets[0];
-        for(int i = 0; i < numberOfPackets - 1; i++) {
-            packets[i] = packets[i + 1];
-        }
         numberOfPackets--;
-        return packet;
+        return packets[start];
     }
 
     public void printAllPackets() {
-        for(int i = 0; i < numberOfPackets; i++) {
-            System.out.println(Arrays.toString(packets[i].getData()));
+        for(int i = start; i < numberOfPackets + start; i++) {
+            System.out.println(Arrays.toString(packets[i % MAX_BUF].getData()));
         }
     }
 }
