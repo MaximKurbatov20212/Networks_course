@@ -1,5 +1,4 @@
 import java.net.DatagramPacket;
-import java.util.Arrays;
 
 public class QueueOfPackets {
     DatagramPacket[] packets;
@@ -14,12 +13,11 @@ public class QueueOfPackets {
 
     // Returns
     public void addPacket(DatagramPacket packet) {
+        if(numberOfPackets == MAX_BUF) return;
+
         DatagramPacket copy = new DatagramPacket(packet.getData().clone(), packet.getLength(), packet.getAddress(), packet.getPort());
         packets[((start + numberOfPackets) % MAX_BUF)] = copy;
-        start = numberOfPackets == MAX_BUF ? start + 1 : start;
-        if(numberOfPackets != MAX_BUF) {
-            numberOfPackets++;
-        }
+        numberOfPackets++;
     }
 
     public DatagramPacket getPacket() {
@@ -32,7 +30,7 @@ public class QueueOfPackets {
 
     public void printAllPackets() {
         for(int i = start; i < numberOfPackets + start; i++) {
-            System.out.println(Arrays.toString(packets[i % MAX_BUF].getData()));
+            System.out.println(packets[i % MAX_BUF].getData().toString());
         }
     }
 }

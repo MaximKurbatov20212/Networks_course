@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.logging.Logger;
 
 public class Client {
     private final DatagramSocket socket;
@@ -11,19 +12,22 @@ public class Client {
     private int timeDelay = 50;
     private final int numberOfTryingReceive = 5;
 
-    private final int MAX_LEN_OF_MESSAGE = 50;
+    private static final Logger logger = Logger.getGlobal();
+
+    private final int MAX_LEN_OF_MESSAGE = 1024;
     private DatagramPacket currentSendingPacket;
     private DatagramPacket currentReceivingPacket;
 
     public Client() throws SocketException, UnknownHostException {
         socket = new DatagramSocket();
-        address = InetAddress.getByName("192.168.43.55");
+//        address = InetAddress.getByName("192.168.43.55");
+        address = InetAddress.getLocalHost();
     }
 
     // Return: message if delivery confirmed, otherwise null
     public String rdtSend(String msg) throws IOException {
-        timeDelay = 50; //
-        makePacket(msg);
+        timeDelay = 50;
+        currentSendingPacket = makePacket(msg);
 
         System.out.println("You sent packet with data: " + msg);
         socket.send(currentSendingPacket);
@@ -39,8 +43,7 @@ public class Client {
 
     private DatagramPacket makePacket(String msg) {
         buf = msg.getBytes();
-        currentSendingPacket = new DatagramPacket(buf, buf.length, address, port);
-        return currentSendingPacket;
+        return new DatagramPacket(buf, buf.length, address, port);
     }
 
     private boolean getConfirmDelivery() throws IOException {

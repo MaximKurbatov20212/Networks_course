@@ -3,6 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 public class Server {
     private final int maxSizeOfMessage = 1024;
@@ -20,7 +21,7 @@ public class Server {
         socket = new DatagramSocket(port);
     }
 
-    public void startServer() {
+    public void waitForTheMessage() {
         while (true) {
             try {
                 Arrays.fill(buf, (byte)0);
@@ -38,7 +39,7 @@ public class Server {
                 }
                 else {
                     queueOfPackets.addPacket(packet);
-                    queueOfPackets.printAllPackets();
+//                    queueOfPackets.printAllPackets();
                     if(numberOfPacket == 0) {
                         System.out.println("Connection accepted, host: " + packet.getAddress());
                     }
@@ -67,6 +68,6 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         Server server = new Server();
-        server.startServer();
+        server.waitForTheMessage();
     }
 }
