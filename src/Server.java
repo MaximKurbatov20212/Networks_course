@@ -3,13 +3,12 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.Arrays;
-import java.util.logging.Logger;
 
 public class Server {
-    private final int maxSizeOfMessage = 1024;
     private final DatagramSocket socket;
-    private byte[] buf = new byte[maxSizeOfMessage];
     private int port;
+    private final int maxSizeOfMessage = (65507 - 20) / 2;
+    private byte[] buf = new byte[maxSizeOfMessage];
 
     private QueueOfPackets queueOfPackets = new QueueOfPackets();
 
@@ -32,20 +31,21 @@ public class Server {
                 // Rebuild packet
                 packet = new DatagramPacket(buf, buf.length, packet.getAddress(), packet.getPort());
                 String received = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Received[" + (numberOfPacket++) +"]: " + received);
+                System.out.println("Received[" + numberOfPacket +"]: " + received);
 
                 if(packetWasLost()) {
                     simulationLostPacket();
                 }
                 else {
+                    // queue is not necessary if Server responses only one host, but I implemented it:)
                     queueOfPackets.addPacket(packet);
-//                    queueOfPackets.printAllPackets();
+                    // Zero packet - connection request
                     if(numberOfPacket == 0) {
                         System.out.println("Connection accepted, host: " + packet.getAddress());
                     }
+                    numberOfPacket++;
                     sendBack(packet);
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -55,7 +55,7 @@ public class Server {
     private void sendBack(DatagramPacket packet) throws IOException {
         System.out.println("Send: confirmation\n");
         socket.send(packet);
-        Arrays.fill(buf, (byte)0);
+        Arrays.fill(buf, (byte)0); // reset buffer
     }
 
     private void simulationLostPacket() {
@@ -63,7 +63,7 @@ public class Server {
     }
 
     private boolean packetWasLost() {
-        return Math.random() < 0.001;
+        return Math.random() > 0.2;
     }
 
     public static void main(String[] args) throws Exception {

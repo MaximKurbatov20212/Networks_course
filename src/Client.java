@@ -2,67 +2,70 @@ import java.io.IOException;
 import java.net.*;
 import java.util.Objects;
 import java.util.Scanner;
-import java.util.logging.Logger;
 
 public class Client {
     private final DatagramSocket socket;
     private InetAddress address;
     private final int port = 4000;
     private byte[] buf;
-    private int timeDelay = 50;
-    private final int numberOfTryingReceive = 5;
+    private int timeDelay;
+    private final int maxNumberAttempts = 3; // we can set it if we want
 
-    private static final Logger logger = Logger.getGlobal();
-
-    private final int MAX_LEN_OF_MESSAGE = 1024;
+    private final int MAX_LEN_OF_MESSAGE = (65507 - 20) / 2;
     private DatagramPacket currentSendingPacket;
     private DatagramPacket currentReceivingPacket;
 
-    public Client() throws SocketException, UnknownHostException {
+    public Client() throws  SocketException, UnknownHostException {
         socket = new DatagramSocket();
 //        address = InetAddress.getByName("192.168.43.55");
         address = InetAddress.getLocalHost();
+        setMinDelay();
     }
 
-    // Return: message if delivery confirmed, otherwise null
+    // Returns: message if delivery confirmed, otherwise null
     public String rdtSend(String msg) throws IOException {
-        timeDelay = 50;
+        setMinDelay();
         currentSendingPacket = makePacket(msg);
-
         System.out.println("You sent packet with data: " + msg);
-        socket.send(currentSendingPacket);
+        for(int i = 0; i < maxNumberAttempts; i++) {
+            socket.send(currentSendingPacket);
+            boolean isConfirmed = getConfirmDelivery();
 
-        // Пытаемся получить подтверждение
-        boolean isConfirmed = getConfirmDelivery();
-        if(!isConfirmed) {
-            return null;
+            // Пытаемся получить подтверждение
+            if(isConfirmed) {
+                System.out.println("Delivery confirmed\n");
+                return new String(currentReceivingPacket.getData(), 0, currentReceivingPacket.getLength());
+            }
+
+            if(i != maxNumberAttempts - 1) {
+                System.out.println("I am trying send again: " + (i + 1) + " attempt(s)");
+            }
         }
-        System.out.println("Delivery confirmed\n");
-        return new String(currentReceivingPacket.getData(), 0, currentReceivingPacket.getLength());
+        System.out.println("The server does not respond\n");
+        return null;
     }
 
+    // Makes packet and returns it
     private DatagramPacket makePacket(String msg) {
         buf = msg.getBytes();
         return new DatagramPacket(buf, buf.length, address, port);
     }
 
+    // Returns true if server responses us, otherwise increases time delay and returns false
     private boolean getConfirmDelivery() throws IOException {
-        for(int i = 0; i < numberOfTryingReceive; i++) {
-            if(deliveryConfirmed()) {
-                return true;
-            }
-            System.out.println("I am trying send again: " + (i + 1) + " attempt(s)");
-            socket.send(currentSendingPacket);
-            timeDelay *= 2;
+        if(deliveryConfirmed()) {
+            return true;
         }
-        System.out.println("The server does not respond\n");
+        increaseTimeDelay();
         return false;
     }
 
+    // Sets time to receive packet and receives it
+    // Returns true if packet is received, otherwise false
     private boolean deliveryConfirmed()  {
         currentReceivingPacket = new DatagramPacket(buf, buf.length);
         try {
-            socket.setSoTimeout(timeDelay);
+            socket.setSoTimeout(timeDelay); // set time after which we consider packet was lost
             socket.receive(currentReceivingPacket);
             return true;
         } catch (SocketTimeoutException e) {
@@ -74,31 +77,35 @@ public class Client {
         }
     }
 
+    // Establish connection with host which has address defined in constructor
     public boolean establishConnection() throws IOException {
         Scanner scanner = new Scanner(System.in);
-        System.out.print("Are you want to establish connection with local host?(yes/no): ");
-
         while(true) {
+            System.out.print("Do you want to establish connection with local host?(yes/no): ");
             String data = scanner.nextLine();
             System.out.println();
-            if(Objects.equals(data, "yes")) {
-                String answer = rdtSend("I want to establish connection");
-                if(answer != null) {
-                    System.out.println("Connection establish successfully, dest host: " + address + "\n");
-                    return true;
+            switch (data) {
+                case("yes"): {
+                    String answer = rdtSend("I want to establish connection");
+                    if(answer != null) {
+                        System.out.println("Connection establish successfully, dest host: " + address + "\n");
+                        return true;
+                    }
+                    break;
                 }
+                case("no"): {
+                    System.out.println("Hmmmmmmm\n");
+                    break;
+                }
+                default:
+                    System.out.println("Uncorrected. Type yes/no\n");
             }
-            else if(Objects.equals(data, "no")) {
-                System.out.println("Hmmmmmmm\n");
-            }
-            else {
-                System.out.println("Uncorrected. Type yes/no\n");
-            }
-            return false;
         }
     }
 
-    private void talkWithHost() throws IOException {
+    // Gets message from standard input stream and gives it to send
+    // "end" is stopstring
+    private void talkToHost() throws IOException {
         Scanner scanner = new Scanner(System.in);
         String message;
         System.out.print("Type message: ");
@@ -111,13 +118,26 @@ public class Client {
         }
     }
 
-    public void close() {
+    private void close() {
         socket.close();
+    }
+
+    public void setMinDelay() {
+        timeDelay = 50;
+    }
+
+    private void increaseTimeDelay() {
+        timeDelay *= 2;
     }
 
     public static void main(String[] args) throws Exception {
         Client client = new Client();
-        while(!client.establishConnection()) {}
-        client.talkWithHost();
+
+        boolean answer;
+        do {
+            answer = client.establishConnection();
+        } while (!answer);
+
+        client.talkToHost();
     }
 }

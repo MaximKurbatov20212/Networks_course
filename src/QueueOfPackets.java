@@ -11,10 +11,8 @@ public class QueueOfPackets {
         packets = new DatagramPacket[MAX_BUF];
     }
 
-    // Returns
     public void addPacket(DatagramPacket packet) {
         if(numberOfPackets == MAX_BUF) return;
-
         DatagramPacket copy = new DatagramPacket(packet.getData().clone(), packet.getLength(), packet.getAddress(), packet.getPort());
         packets[((start + numberOfPackets) % MAX_BUF)] = copy;
         numberOfPackets++;
